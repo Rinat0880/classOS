@@ -3,7 +3,7 @@ version: '3.8'
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: classos_db
+    #container_name: classos_db
     environment:
       POSTGRES_DB: postgres
       POSTGRES_USER: postgres
@@ -49,7 +49,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./configs/config.yml:/app/configs/config.yml:ro
-      - ./certs/ad-ca.crt:/usr/local/share/ca-certificates/ad-ca.crt:ro
+      #- ./certs/ad-ca.crt:/usr/local/share/ca-certificates/ad-ca.crt:ro
       
     extra_hosts:
       - "win-g32prphu8us.school.local:${AD_IP}" 

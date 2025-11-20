@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -12,6 +13,7 @@ import (
 	"github.com/rinat0880/classOS_backend/pkg/handler"
 	"github.com/rinat0880/classOS_backend/pkg/repository"
 	"github.com/rinat0880/classOS_backend/pkg/service"
+	ws "github.com/rinat0880/classOS_backend/pkg/websocket"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -57,16 +59,25 @@ func main() {
 		User:          service.NewIntegratedUserService(repos.User, repos.Group, authService, adService),
 	}
 
-	handlers := handler.NewHandler(services)
+	// Initialize WebSocket Hub
+	wsHub := ws.NewHub()
+	go wsHub.Run()
+
+	// Start cleanup goroutine for stale connections
+	go wsHub.CleanupStaleConnections(90 * time.Second)
+
+	logrus.Info("WebSocket Hub initialized and running")
+
+	handlers := handler.NewHandler(services, wsHub)
 
 	host := viper.GetString("host")
 	if host == "" {
-		host = "localhost" 
+		host = "localhost"
 	}
 
 	port := viper.GetString("port")
 	if port == "" {
-		port = "8080" 
+		port = "8080"
 	}
 
 	address := host + ":" + port
@@ -79,6 +90,7 @@ func main() {
 	}()
 
 	logrus.Printf("classOS_backend started on %s", address)
+	logrus.Printf("WebSocket endpoint available at ws://%s/ws", address)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
