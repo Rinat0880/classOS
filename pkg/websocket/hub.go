@@ -55,10 +55,10 @@ func (h *Hub) Run() {
 	for {
 		select {
 		case client := <-h.register:
-			h.RegisterClient(client)
+			h.registerClient(client)
 
 		case client := <-h.unregister:
-			h.UnregisterClient(client)
+			h.unregisterClient(client)
 
 		case message := <-h.broadcast:
 			h.broadcastToChannel(message.Channel, message.Data)
