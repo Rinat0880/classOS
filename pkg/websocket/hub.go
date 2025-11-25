@@ -1,11 +1,18 @@
 package websocket
 
 import (
+	"encoding/json"
+	"github.com/sirupsen/logrus"
 	"sync"
 	"time"
-
-	"github.com/sirupsen/logrus"
 )
+
+// BroadcastMessage represents a message to broadcast to a specific channel
+type BroadcastMessage struct {
+	Channel string
+	//Message []byte
+	Data []byte
+}
 
 // Hub maintains the set of active clients and broadcasts messages to the clients.
 type Hub struct {
@@ -15,6 +22,8 @@ type Hub struct {
 
 	// Register requests from the clients
 	register chan *Client
+
+	router *MessageRouter
 
 	// Unregister requests from clients
 	unregister chan *Client
@@ -26,38 +35,39 @@ type Hub struct {
 	mu sync.RWMutex
 }
 
-// BroadcastMessage represents a message to broadcast to a specific channel
-type BroadcastMessage struct {
-	Channel string
-	Message []byte
-}
-
 // NewHub creates a new Hub
 func NewHub() *Hub {
-	return &Hub{
-		channels:   make(map[string]map[*Client]bool),
+	hub := &Hub{
+		broadcast:  make(chan *BroadcastMessage), // ✅ Правильный тип
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
-		broadcast:  make(chan *BroadcastMessage, 256),
+		channels:   make(map[string]map[*Client]bool),
 	}
+
+	// Initialize router
+	hub.router = NewMessageRouter(hub)
+
+	return hub
 }
 
 // Run starts the hub's main loop
 func (h *Hub) Run() {
-	logrus.Info("WebSocket Hub started")
-
 	for {
 		select {
 		case client := <-h.register:
-			h.registerClient(client)
+			h.RegisterClient(client)
 
 		case client := <-h.unregister:
-			h.unregisterClient(client)
+			h.UnregisterClient(client)
 
 		case message := <-h.broadcast:
-			h.broadcastToChannel(message)
+			h.broadcastToChannel(message.Channel, message.Data)
 		}
 	}
+}
+
+func (h *Hub) SetRouter(r *MessageRouter) {
+	h.router = r
 }
 
 // registerClient registers a new client to a channel
@@ -65,13 +75,13 @@ func (h *Hub) registerClient(client *Client) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	if h.channels[client.channel] == nil {
-		h.channels[client.channel] = make(map[*Client]bool)
+	if h.channels[client.Channel] == nil {
+		h.channels[client.Channel] = make(map[*Client]bool)
 	}
-	h.channels[client.channel][client] = true
+	h.channels[client.Channel][client] = true
 
 	logrus.WithFields(logrus.Fields{
-		"channel":   client.channel,
+		"channel":   client.Channel,
 		"client_id": client.ID,
 		"user_type": client.UserType,
 	}).Info("Client registered to channel")
@@ -82,18 +92,18 @@ func (h *Hub) unregisterClient(client *Client) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	if clients, ok := h.channels[client.channel]; ok {
+	if clients, ok := h.channels[client.Channel]; ok {
 		if _, exists := clients[client]; exists {
 			delete(clients, client)
 			close(client.send)
 
 			// Remove channel if empty
 			if len(clients) == 0 {
-				delete(h.channels, client.channel)
+				delete(h.channels, client.Channel)
 			}
 
 			logrus.WithFields(logrus.Fields{
-				"channel":   client.channel,
+				"channel":   client.Channel,
 				"client_id": client.ID,
 				"user_type": client.UserType,
 			}).Info("Client unregistered from channel")
@@ -102,38 +112,54 @@ func (h *Hub) unregisterClient(client *Client) {
 }
 
 // broadcastToChannel sends a message to all clients in a specific channel
-func (h *Hub) broadcastToChannel(msg *BroadcastMessage) {
+func (h *Hub) broadcastToChannel(channel string, data []byte) {
 	h.mu.RLock()
-	defer h.mu.RUnlock()
+	clients, exists := h.channels[channel]
+	h.mu.RUnlock()
 
-	clients, ok := h.channels[msg.Channel]
-	if !ok {
-		logrus.WithField("channel", msg.Channel).Warn("Channel not found for broadcast")
+	if !exists {
+		logrus.WithField("channel", channel).Debug("Channel not found for broadcast")
 		return
 	}
 
 	for client := range clients {
 		select {
-		case client.send <- msg.Message:
+		case client.send <- data:
 		default:
-			// Client's send buffer is full, close and unregister
-			go func(c *Client) {
-				h.unregister <- c
-			}(client)
+			logrus.WithFields(logrus.Fields{
+				"client_id": client.ID,
+				"channel":   channel,
+			}).Warn("Client send buffer full, skipping message")
 		}
 	}
-
-	logrus.WithFields(logrus.Fields{
-		"channel":      msg.Channel,
-		"client_count": len(clients),
-	}).Debug("Message broadcast to channel")
 }
 
-// BroadcastToChannel broadcasts a message to a specific channel
-func (h *Hub) BroadcastToChannel(channel string, message []byte) {
-	h.broadcast <- &BroadcastMessage{
-		Channel: channel,
-		Message: message,
+// BroadcastToChannel broadcasts a message to all clients in a specific channel
+func (h *Hub) BroadcastToChannel(channel string, msg *Message) {
+	h.mu.RLock()
+	clients, exists := h.channels[channel]
+	h.mu.RUnlock()
+
+	if !exists {
+		logrus.WithField("channel", channel).Debug("Channel not found for broadcast")
+		return
+	}
+
+	msgBytes, err := json.Marshal(msg)
+	if err != nil {
+		logrus.WithError(err).Error("Failed to marshal message for broadcast")
+		return
+	}
+
+	for client := range clients {
+		select {
+		case client.send <- msgBytes:
+		default:
+			logrus.WithFields(logrus.Fields{
+				"client_id": client.ID,
+				"channel":   channel,
+			}).Warn("Client send buffer full, skipping message")
+		}
 	}
 }
 
@@ -181,7 +207,7 @@ func (h *Hub) CleanupStaleConnections(timeout time.Duration) {
 		// Unregister stale clients
 		for _, client := range staleClients {
 			logrus.WithFields(logrus.Fields{
-				"channel":        client.channel,
+				"channel":        client.Channel,
 				"client_id":      client.ID,
 				"last_heartbeat": client.lastHeartbeat,
 			}).Warn("Removing stale connection")
@@ -190,6 +216,40 @@ func (h *Hub) CleanupStaleConnections(timeout time.Duration) {
 	}
 }
 
+// SendToChannel sends a message to first available client in channel (for agent targeting)
+func (h *Hub) SendToChannel(channel string, msg *Message) {
+	h.mu.RLock()
+	clients, exists := h.channels[channel]
+	h.mu.RUnlock()
+
+	if !exists {
+		logrus.WithField("channel", channel).Warn("Channel not found for message")
+		return
+	}
+
+	msgBytes, err := json.Marshal(msg)
+	if err != nil {
+		logrus.WithError(err).Error("Failed to marshal message")
+		return
+	}
+
+	// Send to first available client (typically only one agent per channel)
+	for client := range clients {
+		select {
+		case client.send <- msgBytes:
+			logrus.WithFields(logrus.Fields{
+				"client_id": client.ID,
+				"channel":   channel,
+			}).Debug("Message sent to client")
+			return
+		default:
+			logrus.WithFields(logrus.Fields{
+				"client_id": client.ID,
+				"channel":   channel,
+			}).Warn("Client send buffer full")
+		}
+	}
+}
 func (h *Hub) RegisterClient(client *Client) {
 	h.register <- client
 }

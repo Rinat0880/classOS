@@ -1,7 +1,6 @@
 package websocket
 
 import (
-	"bytes"
 	"encoding/json"
 	"time"
 
@@ -37,7 +36,7 @@ type Client struct {
 	UserType string
 
 	// Channel name this client is subscribed to
-	channel string
+	Channel string
 
 	// The hub instance
 	hub *Hub
@@ -57,7 +56,7 @@ func NewClient(id string, userType string, channel string, hub *Hub, conn *webso
 	return &Client{
 		ID:            id,
 		UserType:      userType,
-		channel:       channel,
+		Channel:       channel,
 		hub:           hub,
 		conn:          conn,
 		send:          make(chan []byte, 256),
@@ -72,60 +71,36 @@ func NewClient(id string, userType string, channel string, hub *Hub, conn *webso
 // reads from this goroutine.
 func (c *Client) ReadPump() {
 	defer func() {
-		c.hub.UnregisterClient(c)
+		c.hub.unregister <- c // Используем канал unregister
 		c.conn.Close()
 	}()
 
-	c.conn.SetReadLimit(maxMessageSize)
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error {
 		c.conn.SetReadDeadline(time.Now().Add(pongWait))
 		return nil
 	})
 
+	// Get router from hub
+	router := c.hub.router
+	if router == nil {
+		logrus.Error("Message router not initialized")
+		return
+	}
+
 	for {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				logrus.WithError(err).WithFields(logrus.Fields{
-					"client_id": c.ID,
-					"channel":   c.channel,
-				}).Error("WebSocket connection error")
+				logrus.WithError(err).Error("WebSocket error")
 			}
 			break
 		}
 
-		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-
-		// Parse message to detect type
-		var msg Message
-		if err := json.Unmarshal(message, &msg); err != nil {
-			logrus.WithError(err).WithField("client_id", c.ID).Warn("Failed to parse message")
-			continue
+		// Route message through router
+		if err := router.RouteMessage(c, message); err != nil {
+			logrus.WithError(err).Error("Failed to route message")
 		}
-
-		// Handle heartbeat messages
-		if msg.Type == "heartbeat" {
-			c.lastHeartbeat = time.Now()
-			logrus.WithFields(logrus.Fields{
-				"client_id": c.ID,
-				"channel":   c.channel,
-			}).Debug("Heartbeat received")
-
-			// Send heartbeat acknowledgment
-			ack := Message{
-				Type:      "heartbeat_ack",
-				Payload:   nil,
-				Timestamp: time.Now(),
-				ClientID:  c.ID,
-			}
-			ackBytes, _ := json.Marshal(ack)
-			c.send <- ackBytes
-			continue
-		}
-
-		// Handle other message types
-		c.handleMessage(&msg)
 	}
 }
 
@@ -182,31 +157,37 @@ func (c *Client) handleMessage(msg *Message) {
 	logrus.WithFields(logrus.Fields{
 		"type":      msg.Type,
 		"client_id": c.ID,
-		"channel":   c.channel,
+		"channel":   c.Channel,
 	}).Debug("Message received")
 
 	switch msg.Type {
 	case "status_update":
 		// Handle status update from agent
 		if c.UserType == "agent" {
-			// Broadcast to admin dashboard
-			c.hub.BroadcastToChannel("admin::dashboard", c.marshalMessage(msg))
+			// Передаем msg напрямую, Hub сам сделает JSON marshal
+			c.hub.BroadcastToChannel("admin::dashboard", msg)
 		}
 
 	case "action_log":
 		// Handle action log from agent
 		if c.UserType == "agent" {
-			// Store in database (будет реализовано позже)
 			// Broadcast to admin dashboard
-			c.hub.BroadcastToChannel("admin::dashboard", c.marshalMessage(msg))
+			c.hub.BroadcastToChannel("admin::dashboard", msg)
 		}
 
 	case "command_request":
 		// Handle command request from admin to agent
 		if c.UserType == "admin" {
-			// Forward to specific agent channel
-			if targetChannel, ok := msg.Payload["target_channel"].(string); ok {
-				c.hub.BroadcastToChannel(targetChannel, c.marshalMessage(msg))
+			// !!! ВНИМАНИЕ: Тут есть еще одна ошибка (см. ниже)
+			// Payload это []byte, его нельзя читать как map
+			// Вам нужно сначала распаковать его
+
+			// Временное решение для примера (нужна структура для распаковки):
+			var params map[string]interface{}
+			if err := json.Unmarshal(msg.Payload, &params); err == nil {
+				if targetChannel, ok := params["target_channel"].(string); ok {
+					c.hub.BroadcastToChannel(targetChannel, msg)
+				}
 			}
 		}
 
@@ -214,7 +195,7 @@ func (c *Client) handleMessage(msg *Message) {
 		// Handle command response from agent
 		if c.UserType == "agent" {
 			// Forward to admin dashboard
-			c.hub.BroadcastToChannel("admin::dashboard", c.marshalMessage(msg))
+			c.hub.BroadcastToChannel("admin::dashboard", msg)
 		}
 
 	default:
