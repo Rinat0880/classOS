@@ -10,6 +10,7 @@ type Authorization interface {
 	GenerateToken(username, password string) (string, error)
 	ParseToken(token string) (int, string, error)
 	GeneratePasswordHash(password string) string
+	GetUserByCredentials(username, password string) (classosbackend.User, error)
 }
 
 type Group interface {

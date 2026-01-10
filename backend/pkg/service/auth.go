@@ -70,6 +70,11 @@ func (s *AuthService) CreateUser(user classosbackend.User) (int, error) {
 	return s.repo.CreateUser(user)
 }
 
+func (s *AuthService) GetUserByCredentials(username, password string) (classosbackend.User, error) {
+  return s.repo.GetUser(username, s.GeneratePasswordHash(password))
+}
+
+
 func (s *AuthService) ParseToken(accessToken string) (int, string, error) {
 	signingKey := getSigningKey()
 	if signingKey == "" {

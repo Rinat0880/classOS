@@ -52,7 +52,19 @@ func (h *Handler) signIn(c *gin.Context) {
 		return
 	}
 
+	user, err := h.services.Authorization.GetUserByCredentials(input.Username, input.Password)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, "failed to get user data")
+		return
+	}
+
 	c.JSON(http.StatusOK, map[string]interface{}{
 		"token": token,
+		"user": map[string]interface{}{
+			"id":       user.ID,
+			"name":     user.Name,
+			"username": user.Username,
+			"role":     user.Role,
+		},
 	})
 }
