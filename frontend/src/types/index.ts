@@ -5,8 +5,8 @@ export interface User {
   username: string;
   password?: string;
   role: 'admin' | 'client';
-  group_id: number; // 0 если нет группы
-  group_name: string; // '' если нет группы
+  group_id: number;
+  group_name: string;
 }
 
 export interface UpdateUserInput {
@@ -17,7 +17,6 @@ export interface UpdateUserInput {
   group_id?: number | null;
 }
 
-// User status (заглушка для будущего)
 export type UserStatus = 'online' | 'offline';
 
 export interface UserWithStatus extends User {
@@ -27,6 +26,14 @@ export interface UserWithStatus extends User {
 // Group типы
 export interface Group {
   id: number;
+  name: string;
+}
+
+export interface GroupWithUserCount extends Group {
+  userCount: number;
+}
+
+export interface CreateGroupInput {
   name: string;
 }
 
@@ -81,7 +88,7 @@ export interface PaginatedResponse<T> {
   pageSize: number;
 }
 
-// Dashboard Statistics (заглушка)
+// Dashboard Statistics
 export interface DashboardStats {
   totalUsers: number;
   adminUsers: number;

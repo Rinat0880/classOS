@@ -4,14 +4,15 @@ import type { LoginRequest, LoginResponse, User } from '../../types';
 
 export const authService = {
   async signIn(credentials: LoginRequest): Promise<LoginResponse> {
-    const response = await api.post<LoginResponse>(AUTH_ENDPOINTS.SIGN_IN, credentials);
+    const response = await api.post(AUTH_ENDPOINTS.SIGN_IN, credentials);
+    const data = response.data?.data || response.data;
     
-    if (response.data.token) {
-      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, response.data.token);
-      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(response.data.user));
+    if (data.token) {
+      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.token);
+      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(data.user));
     }
     
-    return response.data;
+    return data;
   },
 
   logout(): void {

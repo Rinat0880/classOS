@@ -14,16 +14,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
 
-  // Установить пользователя
   setUser: (user) => set({ user, isAuthenticated: !!user }),
 
-  // Выход
   logout: () => {
     authService.logout();
     set({ user: null, isAuthenticated: false });
   },
 
-  // Инициализация при загрузке приложения
   initialize: () => {
     const user = authService.getCurrentUser();
     const isAuthenticated = authService.isAuthenticated();
