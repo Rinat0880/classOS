@@ -1,16 +1,20 @@
 import { useState, useMemo } from 'react';
-import { Search, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { Search, ChevronUp, ChevronDown, ChevronsUpDown, Edit, Trash2, Key } from 'lucide-react';
 import type { User, UserStatus } from '../../types';
 
 interface UserTableProps {
   users: User[];
   loading?: boolean;
+  onEdit?: (user: User) => void;
+  onDelete?: (user: User) => void;
+  onChangePassword?: (user: User) => void;
+  showActions?: boolean;
 }
 
 type SortField = keyof User | 'status';
 type SortOrder = 'asc' | 'desc';
 
-const UserTable = ({ users, loading = false }: UserTableProps) => {
+const UserTable = ({ users, loading = false, onEdit, onDelete, onChangePassword, showActions = false }: UserTableProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'client'>('all');
   const [groupFilter, setGroupFilter] = useState<string>('all');
@@ -36,38 +40,31 @@ const UserTable = ({ users, loading = false }: UserTableProps) => {
     [users]
   );
 
-  // Фильтрация и поиск
   const filteredUsers = useMemo(() => {
     return usersWithStatus.filter((user) => {
-      // Поиск
       const matchesSearch =
         searchQuery === '' ||
         user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.username.toLowerCase().includes(searchQuery.toLowerCase());
 
-      // Фильтр по роли
       const matchesRole = roleFilter === 'all' || user.role === roleFilter;
 
-      // Фильтр по группе
       const matchesGroup =
         groupFilter === 'all' ||
         user.group_name === groupFilter ||
         (groupFilter === 'no-group' && !user.group_name);
 
-      // Фильтр по статусу (всегда offline пока)
       const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
 
       return matchesSearch && matchesRole && matchesGroup && matchesStatus;
     });
   }, [usersWithStatus, searchQuery, roleFilter, groupFilter, statusFilter]);
 
-  // Сортировка
   const sortedUsers = useMemo(() => {
     const sorted = [...filteredUsers].sort((a, b) => {
       let aValue: any = a[sortField as keyof User];
       let bValue: any = b[sortField as keyof User];
 
-      // Обработка пустых значений
       if (aValue === null || aValue === undefined) aValue = '';
       if (bValue === null || bValue === undefined) bValue = '';
 
@@ -83,7 +80,6 @@ const UserTable = ({ users, loading = false }: UserTableProps) => {
     return sorted;
   }, [filteredUsers, sortField, sortOrder]);
 
-  // Пагинация
   const paginatedUsers = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return sortedUsers.slice(startIndex, startIndex + itemsPerPage);
@@ -91,7 +87,6 @@ const UserTable = ({ users, loading = false }: UserTableProps) => {
 
   const totalPages = Math.ceil(sortedUsers.length / itemsPerPage);
 
-  // Функция сортировки
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -101,7 +96,6 @@ const UserTable = ({ users, loading = false }: UserTableProps) => {
     }
   };
 
-  // Иконка сортировки
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <ChevronsUpDown className="w-4 h-4" />;
     return sortOrder === 'asc' ? (
@@ -124,10 +118,8 @@ const UserTable = ({ users, loading = false }: UserTableProps) => {
 
   return (
     <div className="bg-white rounded-lg shadow">
-      {/* Фильтры и поиск */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex flex-col md:flex-row gap-4">
-          {/* Поиск */}
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
@@ -142,7 +134,6 @@ const UserTable = ({ users, loading = false }: UserTableProps) => {
             />
           </div>
 
-          {/* Фильтр по роли */}
           <select
             value={roleFilter}
             onChange={(e) => {
@@ -156,7 +147,6 @@ const UserTable = ({ users, loading = false }: UserTableProps) => {
             <option value="client">Client</option>
           </select>
 
-          {/* Фильтр по группе */}
           <select
             value={groupFilter}
             onChange={(e) => {
@@ -172,7 +162,6 @@ const UserTable = ({ users, loading = false }: UserTableProps) => {
             ))}
           </select>
 
-          {/* Фильтр по статусу */}
           <select
             value={statusFilter}
             onChange={(e) => {
@@ -188,7 +177,6 @@ const UserTable = ({ users, loading = false }: UserTableProps) => {
         </div>
       </div>
 
-      {/* Таблица */}
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
@@ -241,12 +229,17 @@ const UserTable = ({ users, loading = false }: UserTableProps) => {
                   Status <SortIcon field="status" />
                 </div>
               </th>
+              {showActions && (
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              )}
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {paginatedUsers.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={showActions ? 7 : 6} className="px-6 py-8 text-center text-gray-500">
                   No users found
                 </td>
               </tr>
@@ -284,6 +277,39 @@ const UserTable = ({ users, loading = false }: UserTableProps) => {
                       {user.status}
                     </span>
                   </td>
+                  {showActions && (
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end gap-2">
+                        {onEdit && (
+                          <button
+                            onClick={() => onEdit(user)}
+                            className="text-blue-600 hover:text-blue-900 transition-colors"
+                            title="Edit user"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                        )}
+                        {onChangePassword && (
+                          <button
+                            onClick={() => onChangePassword(user)}
+                            className="text-green-600 hover:text-green-900 transition-colors"
+                            title="Change password"
+                          >
+                            <Key className="w-4 h-4" />
+                          </button>
+                        )}
+                        {onDelete && (
+                          <button
+                            onClick={() => onDelete(user)}
+                            className="text-red-600 hover:text-red-900 transition-colors"
+                            title="Delete user"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))
             )}
@@ -291,7 +317,6 @@ const UserTable = ({ users, loading = false }: UserTableProps) => {
         </table>
       </div>
 
-      {/* Пагинация */}
       {totalPages > 1 && (
         <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
           <div className="text-sm text-gray-600">

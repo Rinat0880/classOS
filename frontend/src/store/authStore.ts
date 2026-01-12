@@ -5,6 +5,7 @@ import { authService } from '../services/auth';
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
+  isInitialized: boolean;
   setUser: (user: User | null) => void;
   logout: () => void;
   initialize: () => void;
@@ -13,6 +14,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
+  isInitialized: false,
 
   setUser: (user) => set({ user, isAuthenticated: !!user }),
 
@@ -24,6 +26,6 @@ export const useAuthStore = create<AuthState>((set) => ({
   initialize: () => {
     const user = authService.getCurrentUser();
     const isAuthenticated = authService.isAuthenticated();
-    set({ user, isAuthenticated });
+    set({ user, isAuthenticated, isInitialized: true });
   },
 }));

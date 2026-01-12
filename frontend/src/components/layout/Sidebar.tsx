@@ -31,12 +31,10 @@ const Sidebar = () => {
 
   return (
     <div className="flex flex-col w-64 bg-gray-800">
-      {/* Logo/Title */}
       <div className="flex items-center justify-center h-16 bg-gray-900">
         <span className="text-white text-lg font-semibold">Admin Panel</span>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 px-2 py-4 space-y-1">
         {navItems.map((item) => (
           <NavLink
@@ -56,7 +54,6 @@ const Sidebar = () => {
         ))}
       </nav>
 
-      {/* Logout button */}
       <div className="px-2 py-4 border-t border-gray-700">
         <button
           onClick={logout}

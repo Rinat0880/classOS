@@ -9,20 +9,20 @@ export const usersService = {
   },
 
   async getById(id: number): Promise<User> {
-    const response = await api.get(`/api/users/${id}`);
+    const response = await api.get(`/api/users/${id}/`);
     return response.data?.data || response.data;
   },
 
   async update(id: number, data: Partial<User>): Promise<User> {
-    const response = await api.patch(`/api/users/${id}`, data);
+    const response = await api.patch(`/api/users/${id}/`, data);
     return response.data?.data || response.data;
   },
 
   async delete(id: number): Promise<void> {
-    await api.delete(`/api/users/${id}`);
+    await api.delete(`/api/users/${id}/`);
   },
 
   async changePassword(id: number, newPassword: string): Promise<void> {
-    await api.post(`/api/users/${id}/password`, { password: newPassword });
+    await api.post(`/api/users/${id}/password/`, { password: newPassword });
   },
 };

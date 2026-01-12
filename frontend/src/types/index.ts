@@ -17,6 +17,18 @@ export interface UpdateUserInput {
   group_id?: number | null;
 }
 
+export interface CreateUserInput {
+  name: string;
+  username: string;
+  password: string;
+  role: 'admin' | 'client';
+  group_id: number;
+}
+
+export interface ChangePasswordInput {
+  password: string;
+}
+
 export type UserStatus = 'online' | 'offline';
 
 export interface UserWithStatus extends User {

@@ -5,13 +5,13 @@ export const AUTH_ENDPOINTS = {
 } as const;
 
 export const GROUPS_ENDPOINTS = {
-  GET_ALL: '/api/groups',
-  CREATE: '/api/groups',
+  GET_ALL: '/api/groups/',
+  CREATE: '/api/groups/',
   GET_BY_ID: (id: number) => `/api/groups/${id}`,
   UPDATE: (id: number) => `/api/groups/${id}`,
   DELETE: (id: number) => `/api/groups/${id}`,
-  GET_USERS: (groupId: number) => `/api/groups/${groupId}/users`,
-  CREATE_USER: (groupId: number) => `/api/groups/${groupId}/users`,
+  GET_USERS: (groupId: number) => `/api/groups/${groupId}/users/`,
+  CREATE_USER: (groupId: number) => `/api/groups/${groupId}/users/`,
   GET_WHITELIST: (groupId: number) => `/api/groups/${groupId}/whitelist`,
   CREATE_WHITELIST: (groupId: number) => `/api/groups/${groupId}/whitelist`,
   GET_WHITELIST_BY_ID: (groupId: number, whitelistId: number) => 

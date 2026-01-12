@@ -5,30 +5,35 @@ import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/authStore';
 import { ROUTES } from './constants';
 
-// Pages (пока заглушки, создадим позже)
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Groups from './pages/Groups';
 import Users from './pages/Users';
 import Settings from './pages/Settings';
 
-// Layout
 import MainLayout from './components/layout/MainLayout';
 
-// QueryClient для React Query
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
       retry: 1,
-      staleTime: 5 * 60 * 1000, // 5 минут
+      staleTime: 5 * 60 * 1000,
     },
   },
 });
 
-// Protected Route компонент
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isInitialized = useAuthStore((state) => state.isInitialized);
+
+  if (!isInitialized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return <Navigate to={ROUTES.LOGIN} replace />;
@@ -40,7 +45,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 function App() {
   const initialize = useAuthStore((state) => state.initialize);
 
-  // Инициализация auth при загрузке
   useEffect(() => {
     initialize();
   }, [initialize]);
@@ -73,10 +77,8 @@ function App() {
           }}
         />
         <Routes>
-          {/* Публичный роут */}
           <Route path={ROUTES.LOGIN} element={<Login />} />
 
-          {/* Защищенные роуты */}
           <Route
             path="/"
             element={
@@ -91,7 +93,6 @@ function App() {
             <Route path={ROUTES.SETTINGS} element={<Settings />} />
           </Route>
 
-          {/* 404 - редирект на Dashboard */}
           <Route path="*" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
         </Routes>
       </BrowserRouter>
