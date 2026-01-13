@@ -34,6 +34,18 @@ export const ADMIN_ENDPOINTS = {
   CHECK_AD_STATUS: '/api/admin/ad/status',
 } as const;
 
+export const DEVICES_ENDPOINTS = {
+  GET_ALL: '/api/devices',
+  GET_ONLINE: '/api/devices/online',
+  GET_BY_NAME: (name: string) => `/api/devices/${name}`,
+} as const;
+
+export const LOGS_ENDPOINTS = {
+  GET_ALL: '/api/logs',
+  GET_BY_USERNAME: (username: string) => `/api/logs/user/${username}`,
+  GET_BY_DEVICE: (device: string) => `/api/logs/device/${device}`,
+} as const;
+
 export const STORAGE_KEYS = {
   ACCESS_TOKEN: 'access_token',
   USER_DATA: 'user_data',
@@ -41,7 +53,8 @@ export const STORAGE_KEYS = {
 
 export const ROUTES = {
   LOGIN: '/login',
-  DASHBOARD: '/',
+  DASHBOARD: '/dashboard',
+  DEVICES: '/devices',
   GROUPS: '/groups',
   USERS: '/users',
   SETTINGS: '/settings',

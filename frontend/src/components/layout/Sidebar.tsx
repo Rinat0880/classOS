@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, UsersRound, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, UsersRound, Settings, LogOut, Monitor } from 'lucide-react';
 import { ROUTES } from '../../constants';
 import { useAuthStore } from '../../store/authStore';
 
@@ -11,6 +11,11 @@ const Sidebar = () => {
       name: 'Dashboard',
       path: ROUTES.DASHBOARD,
       icon: LayoutDashboard,
+    },
+    {
+      name: 'Devices',
+      path: ROUTES.DEVICES,
+      icon: Monitor,
     },
     {
       name: 'Groups',

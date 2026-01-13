@@ -7,6 +7,7 @@ import { ROUTES } from './constants';
 
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Devices from './pages/Devices';
 import Groups from './pages/Groups';
 import Users from './pages/Users';
 import Settings from './pages/Settings';
@@ -87,7 +88,8 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<Dashboard />} />
+            <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
+            <Route path={ROUTES.DEVICES} element={<Devices />} />
             <Route path={ROUTES.GROUPS} element={<Groups />} />
             <Route path={ROUTES.USERS} element={<Users />} />
             <Route path={ROUTES.SETTINGS} element={<Settings />} />

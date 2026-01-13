@@ -7,6 +7,7 @@ import { groupsService } from '../../services/groups';
 import UserTable from '../../components/common/UserTable';
 import UserModal from '../../components/common/UserModal';
 import DeleteConfirmDialog from '../../components/common/DeleteConfirmDialog';
+import LogsModal from '../../components/common/LogsModal';
 import type { User, CreateUserInput, UpdateUserInput } from '../../types';
 
 const Users = () => {
@@ -15,6 +16,7 @@ const Users = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [logsUsername, setLogsUsername] = useState<string | null>(null);
 
   const { data: users = [], isLoading: usersLoading } = useQuery({
     queryKey: ['users'],
@@ -111,6 +113,10 @@ const Users = () => {
     setIsDeleteDialogOpen(true);
   };
 
+  const handleViewLogs = (username: string) => {
+    setLogsUsername(username);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -133,6 +139,7 @@ const Users = () => {
         showActions
         onEdit={handleEditClick}
         onDelete={handleDeleteClick}
+        onViewLogs={handleViewLogs}
       />
 
       <UserModal
@@ -169,6 +176,12 @@ const Users = () => {
             : ''
         }
         isLoading={deleteMutation.isPending}
+      />
+
+      <LogsModal
+        isOpen={!!logsUsername}
+        onClose={() => setLogsUsername(null)}
+        username={logsUsername || undefined}
       />
     </div>
   );

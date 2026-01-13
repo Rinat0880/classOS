@@ -109,3 +109,31 @@ export interface DashboardStats {
   activeGroups: number;
   onlineUsers: number; 
 }
+
+// Device Monitoring
+export interface DeviceStatus {
+  device_name: string;
+  username: string;
+  last_heartbeat: string;
+}
+
+// User Logs
+export interface UserLog {
+  id: number;
+  username: string;
+  device_name: string;
+  timestamp: string;
+  log_type: 'system' | 'process' | 'browser';
+  program: string;
+  action: string;
+}
+
+export interface LogsFilter {
+  username?: string;
+  device_name?: string;
+  log_type?: string;
+  start_date?: string;
+  end_date?: string;
+  limit?: number;
+  offset?: number;
+}

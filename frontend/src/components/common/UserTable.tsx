@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, ChevronUp, ChevronDown, ChevronsUpDown, Edit, Trash2 } from 'lucide-react';
+import { Search, ChevronUp, ChevronDown, ChevronsUpDown, Edit, Trash2, Activity } from 'lucide-react';
 import type { User, UserStatus } from '../../types';
 
 interface UserTableProps {
@@ -7,13 +7,14 @@ interface UserTableProps {
   loading?: boolean;
   onEdit?: (user: User) => void;
   onDelete?: (user: User) => void;
+  onViewLogs?: (username: string) => void;
   showActions?: boolean;
 }
 
 type SortField = keyof User | 'status';
 type SortOrder = 'asc' | 'desc';
 
-const UserTable = ({ users, loading = false, onEdit, onDelete, showActions = false }: UserTableProps) => {
+const UserTable = ({ users, loading = false, onEdit, onDelete, onViewLogs, showActions = false }: UserTableProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'client'>('all');
   const [groupFilter, setGroupFilter] = useState<string>('all');
@@ -279,6 +280,15 @@ const UserTable = ({ users, loading = false, onEdit, onDelete, showActions = fal
                   {showActions && (
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
+                        {onViewLogs && (
+                          <button
+                            onClick={() => onViewLogs(user.username)}
+                            className="text-blue-600 hover:text-blue-900 transition-colors"
+                            title="View logs"
+                          >
+                            <Activity className="w-4 h-4" />
+                          </button>
+                        )}
                         {onEdit && (
                           <button
                             onClick={() => onEdit(user)}
