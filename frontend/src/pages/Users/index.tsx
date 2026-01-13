@@ -29,13 +29,16 @@ const Users = () => {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: CreateUserInput) =>
-      groupsService.createUser(data.group_id, {
+    mutationFn: (data: CreateUserInput) => {
+      const group = groups.find(g => g.id === data.group_id);
+      return groupsService.createUser(data.group_id, {
         name: data.name,
         username: data.username,
         password: data.password,
         role: data.role,
-      }),
+        group_name: group?.name || '',
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['groups'] });
@@ -100,7 +103,14 @@ const Users = () => {
     if (data.name && data.name !== selectedUser.name) updateData.name = data.name;
     if (data.username && data.username !== selectedUser.username) updateData.username = data.username;
     if (data.role && data.role !== selectedUser.role) updateData.role = data.role;
-    if (data.group_id && data.group_id !== selectedUser.group_id) updateData.group_id = data.group_id;
+    
+    if (data.group_id && data.group_id !== selectedUser.group_id) {
+      updateData.group_id = data.group_id;
+      const group = groups.find(g => g.id === data.group_id);
+      if (group) {
+        updateData.group_name = group.name;
+      }
+    }
 
     if (Object.keys(updateData).length === 0) {
       toast.error('No changes detected');
