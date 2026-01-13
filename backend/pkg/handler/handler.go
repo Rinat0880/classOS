@@ -29,6 +29,8 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	}))
 	router.Use(gin.Logger())
 
+	router.GET("/ws", h.handleWebSocket)
+
 	auth := router.Group("/auth")
 	{
 		auth.POST("/sign-up", h.signUp)
@@ -64,6 +66,21 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		{
 			admin.POST("/sync", h.syncFromAD)
 			admin.GET("/ad/status", h.checkADConnection)
+		}
+
+		devices := api.Group("/devices")
+		{
+			devices.GET("/", h.getAllDevices)
+			devices.GET("/online", h.getOnlineDevices)
+			devices.GET("/:name", h.getDeviceByName)
+			devices.DELETE("/:name", h.deleteDevice)
+		}
+
+		logs := api.Group("/logs")
+		{
+			logs.GET("/", h.getLogs)
+			logs.GET("/user/:username", h.getLogsByUsername)
+			logs.GET("/device/:device", h.getLogsByDevice)
 		}
 	}
 	return router

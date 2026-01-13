@@ -39,10 +39,28 @@ type User interface {
 	DeleteWithTx(tx *sql.Tx, checkerId, userId int) error
 }
 
+type Device interface {
+	UpsertDeviceStatus(device classosbackend.DeviceStatus) error
+	GetAllDevices() ([]classosbackend.DeviceStatus, error)
+	GetOnlineDevices() ([]classosbackend.DeviceStatus, error)
+	GetDeviceByName(deviceName string) (classosbackend.DeviceStatus, error)
+	DeleteDevice(deviceName string) error
+}
+
+type Logs interface {
+	SaveLogs(logs []classosbackend.UserLog) error
+	GetLogsByUsername(username string, limit, offset int) ([]classosbackend.UserLog, error)
+	GetLogsByDevice(deviceName string, limit, offset int) ([]classosbackend.UserLog, error)
+	GetLogsFiltered(filter classosbackend.LogsFilter) ([]classosbackend.UserLog, error)
+	GetLogsCount(filter classosbackend.LogsFilter) (int, error)
+}
+
 type Repository struct {
 	Authorization
 	Group
 	User
+	Device
+	Logs
 }
 
 func NewRepository(db *sqlx.DB) *Repository {
@@ -50,5 +68,7 @@ func NewRepository(db *sqlx.DB) *Repository {
 		Authorization: NewAuthPostgres(db),
 		Group:         NewGroupPostgres(db),
 		User:          NewUserPostgres(db),
+		Device:        NewDevicePostgres(db),
+		Logs:          NewLogsPostgres(db),
 	}
 }

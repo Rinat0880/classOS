@@ -29,10 +29,28 @@ type User interface {
 	Update(checkerId, userId int, input classosbackend.UpdateUserInput) error
 }
 
+type Device interface {
+	UpsertDeviceStatus(device classosbackend.DeviceStatus) error
+	GetAllDevices() ([]classosbackend.DeviceStatus, error)
+	GetOnlineDevices() ([]classosbackend.DeviceStatus, error)
+	GetDeviceByName(deviceName string) (classosbackend.DeviceStatus, error)
+	DeleteDevice(deviceName string) error
+}
+
+type Logs interface {
+	SaveLogs(logs []classosbackend.UserLog) error
+	GetLogsByUsername(username string, limit, offset int) ([]classosbackend.UserLog, error)
+	GetLogsByDevice(deviceName string, limit, offset int) ([]classosbackend.UserLog, error)
+	GetLogsFiltered(filter classosbackend.LogsFilter) ([]classosbackend.UserLog, error)
+	GetLogsCount(filter classosbackend.LogsFilter) (int, error)
+}
+
 type Service struct {
 	Authorization
 	Group
 	User
+	Device
+	Logs
 }
 
 func NewService(repos *repository.Repository) *Service {
@@ -43,5 +61,7 @@ func NewService(repos *repository.Repository) *Service {
 		Authorization: authService,
 		Group:         NewIntegratedGroupService(repos.Group, adService),
 		User:          NewIntegratedUserService(repos.User, repos.Group, authService, adService),
+		Device:        NewDeviceService(repos.Device),
+		Logs:          NewLogsService(repos.Logs),
 	}
 }

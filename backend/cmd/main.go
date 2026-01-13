@@ -55,6 +55,8 @@ func main() {
 		Authorization: authService,
 		Group:         service.NewIntegratedGroupService(repos.Group, adService),
 		User:          service.NewIntegratedUserService(repos.User, repos.Group, authService, adService),
+		Device:        service.NewDeviceService(repos.Device),
+		Logs:          service.NewLogsService(repos.Logs),
 	}
 
 	handlers := handler.NewHandler(services)
