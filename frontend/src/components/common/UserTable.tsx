@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, ChevronUp, ChevronDown, ChevronsUpDown, Edit, Trash2, Key } from 'lucide-react';
+import { Search, ChevronUp, ChevronDown, ChevronsUpDown, Edit, Trash2 } from 'lucide-react';
 import type { User, UserStatus } from '../../types';
 
 interface UserTableProps {
@@ -7,14 +7,13 @@ interface UserTableProps {
   loading?: boolean;
   onEdit?: (user: User) => void;
   onDelete?: (user: User) => void;
-  onChangePassword?: (user: User) => void;
   showActions?: boolean;
 }
 
 type SortField = keyof User | 'status';
 type SortOrder = 'asc' | 'desc';
 
-const UserTable = ({ users, loading = false, onEdit, onDelete, onChangePassword, showActions = false }: UserTableProps) => {
+const UserTable = ({ users, loading = false, onEdit, onDelete, showActions = false }: UserTableProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'client'>('all');
   const [groupFilter, setGroupFilter] = useState<string>('all');
@@ -287,15 +286,6 @@ const UserTable = ({ users, loading = false, onEdit, onDelete, onChangePassword,
                             title="Edit user"
                           >
                             <Edit className="w-4 h-4" />
-                          </button>
-                        )}
-                        {onChangePassword && (
-                          <button
-                            onClick={() => onChangePassword(user)}
-                            className="text-green-600 hover:text-green-900 transition-colors"
-                            title="Change password"
-                          >
-                            <Key className="w-4 h-4" />
                           </button>
                         )}
                         {onDelete && (

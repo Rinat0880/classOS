@@ -6,7 +6,6 @@ import { usersService } from '../../services/users';
 import { groupsService } from '../../services/groups';
 import UserTable from '../../components/common/UserTable';
 import UserModal from '../../components/common/UserModal';
-import ChangePasswordModal from '../../components/common/ChangePasswordModal';
 import DeleteConfirmDialog from '../../components/common/DeleteConfirmDialog';
 import type { User, CreateUserInput, UpdateUserInput } from '../../types';
 
@@ -14,7 +13,6 @@ const Users = () => {
   const queryClient = useQueryClient();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
@@ -29,16 +27,13 @@ const Users = () => {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: CreateUserInput) => {
-      const group = groups.find(g => g.id === data.group_id);
-      return groupsService.createUser(data.group_id, {
+    mutationFn: (data: CreateUserInput) =>
+      groupsService.createUser(data.group_id, {
         name: data.name,
         username: data.username,
         password: data.password,
         role: data.role,
-        group_name: group?.name || '',
-      });
-    },
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['groups'] });
@@ -65,19 +60,6 @@ const Users = () => {
     },
   });
 
-  const changePasswordMutation = useMutation({
-    mutationFn: ({ id, password }: { id: number; password: string }) =>
-      usersService.changePassword(id, password),
-    onSuccess: () => {
-      setIsPasswordModalOpen(false);
-      setSelectedUser(null);
-      toast.success('Password changed successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to change password');
-    },
-  });
-
   const deleteMutation = useMutation({
     mutationFn: (id: number) => usersService.delete(id),
     onSuccess: () => {
@@ -99,30 +81,19 @@ const Users = () => {
   const handleEdit = (data: any) => {
     if (!selectedUser) return;
     
-    const updateData: UpdateUserInput = {};
-    if (data.name && data.name !== selectedUser.name) updateData.name = data.name;
-    if (data.username && data.username !== selectedUser.username) updateData.username = data.username;
-    if (data.role && data.role !== selectedUser.role) updateData.role = data.role;
-    
-    if (data.group_id && data.group_id !== selectedUser.group_id) {
-      updateData.group_id = data.group_id;
-      const group = groups.find(g => g.id === data.group_id);
-      if (group) {
-        updateData.group_name = group.name;
-      }
-    }
+    const updateData: UpdateUserInput = {
+      name: data.name,
+      username: data.username,
+      role: data.role,
+      group_id: data.group_id,
+      group_name: groups.find(g => g.id === data.group_id)?.name || selectedUser.group_name,
+    };
 
-    if (Object.keys(updateData).length === 0) {
-      toast.error('No changes detected');
-      return;
+    if (data.password && data.password.trim() !== '') {
+      updateData.password = data.password;
     }
 
     updateMutation.mutate({ id: selectedUser.id, data: updateData });
-  };
-
-  const handleChangePassword = (password: string) => {
-    if (!selectedUser) return;
-    changePasswordMutation.mutate({ id: selectedUser.id, password });
   };
 
   const handleDelete = () => {
@@ -133,11 +104,6 @@ const Users = () => {
   const handleEditClick = (user: User) => {
     setSelectedUser(user);
     setIsEditModalOpen(true);
-  };
-
-  const handlePasswordClick = (user: User) => {
-    setSelectedUser(user);
-    setIsPasswordModalOpen(true);
   };
 
   const handleDeleteClick = (user: User) => {
@@ -167,7 +133,6 @@ const Users = () => {
         showActions
         onEdit={handleEditClick}
         onDelete={handleDeleteClick}
-        onChangePassword={handlePasswordClick}
       />
 
       <UserModal
@@ -188,17 +153,6 @@ const Users = () => {
         user={selectedUser}
         groups={groups}
         isLoading={updateMutation.isPending}
-      />
-
-      <ChangePasswordModal
-        isOpen={isPasswordModalOpen}
-        onClose={() => {
-          setIsPasswordModalOpen(false);
-          setSelectedUser(null);
-        }}
-        onSubmit={handleChangePassword}
-        user={selectedUser}
-        isLoading={changePasswordMutation.isPending}
       />
 
       <DeleteConfirmDialog

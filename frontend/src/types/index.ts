@@ -14,7 +14,7 @@ export interface UpdateUserInput {
   username?: string;
   password?: string;
   role?: 'admin' | 'client';
-  group_id?: number;
+  group_id?: number | null;
   group_name?: string;
 }
 
@@ -24,7 +24,6 @@ export interface CreateUserInput {
   password: string;
   role: 'admin' | 'client';
   group_id: number;
-  group_name: string;
 }
 
 export interface ChangePasswordInput {

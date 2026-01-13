@@ -24,6 +24,15 @@ const createUserSchema = z.object({
 const editUserSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
   username: z.string().min(1, 'Username is required').max(100, 'Username too long'),
+  password: z.string().optional().refine(
+    (val) => {
+      if (!val || val.trim() === '') return true;
+      return passwordSchema.safeParse(val).success;
+    },
+    {
+      message: 'Password must be at least 8 characters with uppercase, lowercase, number, and special character',
+    }
+  ),
   role: z.enum(['admin', 'client']),
   group_id: z.number().min(1, 'Group is required'),
 });
@@ -49,12 +58,13 @@ const UserModal = ({ isOpen, onClose, onSubmit, user, groups, isLoading }: UserM
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<CreateUserFormData>({
+  } = useForm<CreateUserFormData | EditUserFormData>({
     resolver: zodResolver(schema),
     defaultValues: user
       ? {
           name: user.name,
           username: user.username,
+          password: '',
           role: user.role,
           group_id: user.group_id,
         }
@@ -70,6 +80,7 @@ const UserModal = ({ isOpen, onClose, onSubmit, user, groups, isLoading }: UserM
           ? {
               name: user.name,
               username: user.username,
+              password: '',
               role: user.role,
               group_id: user.group_id,
             }
@@ -137,25 +148,27 @@ const UserModal = ({ isOpen, onClose, onSubmit, user, groups, isLoading }: UserM
               )}
             </div>
 
-            {!isEditMode && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                <input
-                  type="password"
-                  {...register('password')}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.password ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="Password"
-                />
-                {errors.password && (
-                  <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
-                )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Password {isEditMode && <span className="text-gray-500">(optional - leave empty to keep current)</span>}
+              </label>
+              <input
+                type="password"
+                {...register('password')}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.password ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder={isEditMode ? "Leave empty to keep current password" : "Password"}
+              />
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+              )}
+              {!isEditMode && (
                 <p className="mt-1 text-xs text-gray-500">
                   Min 8 chars, uppercase, lowercase, number, special character
                 </p>
-              </div>
-            )}
+              )}
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>

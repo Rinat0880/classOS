@@ -32,7 +32,7 @@ const Sidebar = () => {
   return (
     <div className="flex flex-col w-64 bg-gray-800">
       <div className="flex items-center justify-center h-16 bg-gray-900">
-        <span className="text-white text-lg font-semibold">Admin Panel</span>
+        <span className="text-white text-lg font-semibold">ClassOS</span>
       </div>
 
       <nav className="flex-1 px-2 py-4 space-y-1">
